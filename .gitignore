@@ -1,0 +1,6 @@
+__pycache__/*
+models/*
+predictions/*
+data/*
+.ipynb_checkpoints/*
+
