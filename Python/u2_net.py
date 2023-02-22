@@ -1,5 +1,3 @@
-# code has been adapted from
-# https://github.com/xuebinqin/U-2-Net/blob/master/model/u2net.py
 # reference
 # https://arxiv.org/pdf/2005.09007.pdf
 
