@@ -1,9 +1,9 @@
+# Imports
 import os
-from PIL import Image
 import argparse
 from torchvision import transforms
-import u2_net
 from u2_net import U2Net
+from PIL import Image
 
 
 def main(args):
@@ -14,6 +14,7 @@ def main(args):
 
     transform = transforms.ToTensor()
     input_ = transform(img)
+
     # add batch dimension
     input_ = input_[None, :]
     print(input_.size())
