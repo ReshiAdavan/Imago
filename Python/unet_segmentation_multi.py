@@ -1,15 +1,16 @@
-#! /usr/bin/env python3
-
 import os
 import glob
 import argparse
 import time
-from datetime import datetime
-from tqdm import tqdm
 import copy
 import numpy as np
-
 import torch
+import cv2
+
+# import matplotlib.image as mpimg
+
+from datetime import datetime
+from tqdm import tqdm
 from torch import nn
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, Dataset
@@ -17,9 +18,7 @@ from torchvision import datasets, transforms
 from torchvision.utils import make_grid
 from sklearn.model_selection import train_test_split
 
-# import matplotlib.image as mpimg
 # from PIL import Image
-import cv2
 
 
 class FSDataset(Dataset):
@@ -91,7 +90,6 @@ class EncoderBlock(nn.Module):
     def forward(self, c):
         c = self.conv(c)
         p = self.pool(c)
-
         return c, p  # return convolutional (c) part for concatenating
 
 
@@ -226,20 +224,27 @@ def training(model, epoch, device, dataloader, criterion, optimizer, args):
     iou_scores = []
 
     model.train()
+
     # loop over batches
     loop = tqdm(enumerate(dataloader), leave=False, total=len(dataloader))
     for idx, (img, mask) in loop:
+    
         # set to device
         img, mask = img.to(device), mask.to(device)
+    
         # set optimizer to zero
         optimizer.zero_grad()
+    
         # forward pass (apply model)
         pred = model(img)
+    
         # loss
         loss = criterion(pred, mask)
         train_losses.append(loss)
+    
         # backward
         loss.backward()
+    
         # update the weights
         optimizer.step()
 
@@ -252,6 +257,7 @@ def training(model, epoch, device, dataloader, criterion, optimizer, args):
 
         dice_scores.append(dice)
         iou_scores.append(iou)
+    
         # update progress bar
         loop.set_description(f'Train Epoch {epoch}/{args.epochs}')
         loop.set_postfix(loss=loss.item(), dice=dice.item(), iou=iou.item())
@@ -273,13 +279,17 @@ def validation(model, epoch, device, dataloader, criterion, args):
 
     model.eval()
     with torch.no_grad():
+    
         # loop over batches
         loop = tqdm(enumerate(dataloader), leave=False, total=len(dataloader))
         for idx, (img, mask) in loop:
+    
             # set to device
             img, mask = img.to(device), mask.to(device)
+    
             # forward pass (apply model)
             pred = model(img)
+    
             # loss
             loss = criterion(pred, mask)
             val_losses.append(loss)
@@ -515,10 +525,7 @@ def main(args):
         np.save(preds_path, best_preds)
         np.save(masks_path, masks_val)
         print(f'predictions saved')
-
-    # TODO
-    # inference mode only - load model, make and save predictions
-
+        
 
 if __name__ == '__main__':
 
