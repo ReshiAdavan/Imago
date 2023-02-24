@@ -1,26 +1,23 @@
-#! /usr/bin/env python3
-
+# Imports
 import os
 import glob
 import argparse
 import time
-from datetime import datetime
-from tqdm import tqdm
 import copy
 import numpy as np
-
 import torch
+import matplotlib.image as mpimg
+import u2_net
+
+from datetime import datetime
+from tqdm import tqdm
 from torch import nn
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets, transforms
 from torchvision.utils import make_grid
 from sklearn.model_selection import train_test_split
-
-import matplotlib.image as mpimg
 from PIL import Image
-
-import u2_net
 
 
 class FSDataset(Dataset):
@@ -46,6 +43,7 @@ class FSDataset(Dataset):
         if self.transforms:
             img = self.transforms(img)
             mask = self.transforms(mask)
+
             # normalize image
             normalize = transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
             img = normalize(img)
@@ -57,7 +55,6 @@ def dice_coef(y_pred, y_true, smooth=1):
     intersection = torch.sum(y_true * y_pred, axis=[1, 2, 3])
     union = torch.sum(y_true, axis=[1, 2, 3]) + torch.sum(y_pred, axis=[1, 2, 3])
     dice = torch.mean((2. * intersection + smooth) / (union + smooth), axis=0)
-
     return dice
 
 
@@ -65,7 +62,6 @@ def iou_coef(y_true, y_pred, smooth=1):
     intersection = torch.sum(torch.abs(y_true * y_pred), axis=[1, 2, 3])
     union = torch.sum(y_true, axis=[1, 2, 3]) + torch.sum(y_pred, [1, 2, 3]) - intersection
     iou = torch.mean((intersection + smooth) / (union + smooth), axis=0)
-
     return iou
 
 
@@ -86,7 +82,6 @@ def muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v):
         loss0.data.item(), loss1.data.item(), loss2.data.item(), loss3.data.item(), loss4.data.item(),
         loss5.data.item(),
         loss6.data.item()))
-
     return loss0, loss
 
 
@@ -97,24 +92,31 @@ def training(model, epoch, device, dataloader, optimizer, args):
     iou_scores = []
 
     model.train()
+
     # loop over batches
     loop = tqdm(enumerate(dataloader), leave=False, total=len(dataloader))
     for idx, (img, mask) in loop:
+        
         # set to device
         img, mask = img.to(device), mask.to(device)
         print('training')
         print(img.size(), mask.size())
+        
         # set optimizer to zero
         optimizer.zero_grad()
+        
         # forward pass (apply model)
         d0, d1, d2, d3, d4, d5, d6 = model(img)
         pred = d0
+        
         # loss
         # loss = criterion(pred[0], mask)
         loss0, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, mask)
         train_losses.append(loss)
+        
         # backward
         loss.backward()
+        
         # update the weights
         optimizer.step()
 
@@ -126,6 +128,7 @@ def training(model, epoch, device, dataloader, optimizer, args):
 
         dice_scores.append(dice)
         iou_scores.append(iou)
+        
         # update progess bar
         loop.set_description(f'Train Epoch {epoch}/{args.epochs}')
         loop.set_postfix(loss=loss.item(), dice=dice.item(), iou=iou.item())
@@ -147,14 +150,17 @@ def validation(model, epoch, device, dataloader, args):
 
     model.eval()
     with torch.no_grad():
+        
         # loop over batches
         loop = tqdm(enumerate(dataloader), leave=False, total=len(dataloader))
         for idx, (img, mask) in loop:
+            
             # set to device
             img, mask = img.to(device), mask.to(device)
             # forward pass (apply model)
             d0, d1, d2, d3, d4, d5, d6 = model(img)
             pred = d0
+            
             # loss
             # loss = criterion(pred[0], mask)
             loss0, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, mask)
@@ -229,6 +235,7 @@ def main(args):
     transforms_train = transforms.Compose([
         transforms.ToPILImage(),
         transforms.Resize((args.img_size, args.img_size)),
+        
         # transforms.RandomHorizontalFlip(),
         # transforms.RandomRotation(30),
         transforms.ToTensor(),
@@ -299,6 +306,7 @@ def main(args):
             model_path = os.path.join(args.save_model_path, model_name)
             preds_name = f'pred_forest_{date}_epoch={epoch}_loss={best_loss:.3f}_dice={dice_train:.3f}_iou={iou_train:.3f}'
             preds_path = os.path.join(args.save_preds_path, preds_name)
+            
             # save best model
             best_model = copy.deepcopy(model)
             # save predictions
@@ -352,10 +360,6 @@ def main(args):
         np.save(preds_path, best_preds)
         np.save(masks_path, masks_val)
         print(f'predictions saved')
-
-    # TODO
-    # inference mode only - load model, make and save predictions
-
 
 if __name__ == '__main__':
 
