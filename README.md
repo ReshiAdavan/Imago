@@ -1,6 +1,6 @@
 # Imago
 
-My Image Segmentation AI Tool, which leverages u-net and u2-net architectures to achieve single and multi-segmentation, and object-cropping in images.
+An Image Segmentation AI Tool, which leverages u-net and u2-net architectures to achieve single and multi-segmentation, and object-cropping in images.
 
 ### Inspiration
 
